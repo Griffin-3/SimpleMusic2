@@ -21,13 +21,16 @@ public class MediaListActivity extends AppCompatActivity {
     private MediaPlayer mediaPlayer;
     private ArrayList<String> fileList;
     private int currentPosition = -1;
+    private DatabaseHelper dbHelper;
+    private CustomAdapter adapter;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_media_list);
 
-        Intent intent = getIntent();
-        fileList = intent.getStringArrayListExtra("fileList");
+        dbHelper = new DatabaseHelper(this);
+        fileList = dbHelper.getQueueItems();
+        currentPosition = dbHelper.getQueuePosition();
 
         mediaPlayer = new MediaPlayer();
         mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
@@ -49,13 +52,18 @@ public class MediaListActivity extends AppCompatActivity {
                     mediaPlayer.stop();
                     mediaPlayer.reset();
                 }
+                dbHelper.setQueuePosition(currentPosition);
                 finish();
             }
         });
 
         ListView listView = findViewById(R.id.listView);
-        CustomAdapter adapter = new CustomAdapter(this, fileList);
+        adapter = new CustomAdapter(this, fileList);
         listView.setAdapter(adapter);
+
+        if (currentPosition > 0) {
+            listView.setSelection(currentPosition - 1);
+        }
     }
 
     private void playSong(int position) {
@@ -68,6 +76,8 @@ public class MediaListActivity extends AppCompatActivity {
             mediaPlayer.prepare();
             mediaPlayer.start();
             currentPosition = position;
+            dbHelper.setQueuePosition(currentPosition);
+            adapter.notifyDataSetChanged();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -81,6 +91,7 @@ public class MediaListActivity extends AppCompatActivity {
             mediaPlayer.stop();
             mediaPlayer.reset();
             currentPosition = -1;
+            dbHelper.setQueuePosition(currentPosition);
         }
     }
 
@@ -112,19 +123,12 @@ public class MediaListActivity extends AppCompatActivity {
             String artist = parts[0];
             String title = parts[1];
             long duration = Long.parseLong(parts[2]);
-            String data = parts[3];
-
-            if (artist.equals("<unknown>") && title.contains(" - ")) {
-                String[] titleParts = title.split(" - ", 2);
-                artist = titleParts[0];
-                title = titleParts[1];
-            }
 
             TextView titleText = convertView.findViewById(R.id.titleText);
             TextView artistText = convertView.findViewById(R.id.artistText);
             TextView durationText = convertView.findViewById(R.id.durationText);
 
-            titleText.setText(title);
+            titleText.setText((position + 1) + ". " + title);
             artistText.setText(artist);
 
             if (duration > 0) {
@@ -136,13 +140,16 @@ public class MediaListActivity extends AppCompatActivity {
                 durationText.setText("");
             }
 
-            convertView.setTag(position);
+            if (position == currentPosition) {
+                convertView.setBackgroundColor(getResources().getColor(android.R.color.holo_blue_light));
+            } else {
+                convertView.setBackgroundColor(0);
+            }
 
             convertView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    int pos = (Integer) v.getTag();
-                    playSong(pos);
+                    playSong(position);
                 }
             });
 

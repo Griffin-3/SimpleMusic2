@@ -1,17 +1,15 @@
 package com.griffin3.simplemusic;
 
-
 import android.Manifest;
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.database.Cursor;
-import android.os.Build;
 import android.os.Bundle;
-import android.provider.MediaStore;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
-import android.widget.FrameLayout;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -21,10 +19,17 @@ import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
     private static final int REQUEST_READ_EXTERNAL_STORAGE = 1001;
+    private DatabaseHelper dbHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        dbHelper = new DatabaseHelper(this);
+
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(16, 100, 16, 16);
 
         Button mediaButton = new Button(this);
         mediaButton.setText("Media");
@@ -38,68 +43,59 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
-
-        FrameLayout layout = new FrameLayout(this);
-        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.WRAP_CONTENT,
-                FrameLayout.LayoutParams.WRAP_CONTENT
-        );
-        params.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
-        params.topMargin = 100;
-        mediaButton.setLayoutParams(params);
         layout.addView(mediaButton);
+
+        Button clearButton = new Button(this);
+        clearButton.setText("Clear Data");
+        clearButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dbHelper.clearAllData();
+                finish();
+            }
+        });
+        layout.addView(clearButton);
+
+        TextView debugArea = new TextView(this);
+        layout.addView(debugArea);
+
+        boolean reloadedMedia = false;
+        boolean reloadedQueue = false;
+
+        if (dbHelper.getMediaCount() == 0) {
+            long elapsed = dbHelper.loadMediaFromMediaStore(this);
+            Toast.makeText(this, "Loaded media in " + elapsed + " ms", Toast.LENGTH_SHORT).show();
+            reloadedMedia = true;
+        }
+
+        if (dbHelper.isQueueEmpty()) {
+            dbHelper.fillQueueWithShuffledMedia();
+            dbHelper.setQueuePosition(0);
+            reloadedQueue = true;
+        }
+
+        int mediaCount = dbHelper.getMediaCount();
+        String debugText = mediaCount > 0 ? "Files in st_media: " + mediaCount : "st_media database doesn't exist";
+        if (reloadedMedia) debugText += " (reloaded)";
+        ArrayList<String> queue = dbHelper.getQueueItems();
+        if (!queue.isEmpty()) {
+            int position = dbHelper.getQueuePosition();
+            String songInfo = dbHelper.getCurrentSongInfo(position);
+            debugText += "\nFiles in queue: " + queue.size() + "\nQueue position: " + position + "\nCurrent song: " + (songInfo != null ? songInfo : "N/A");
+            if (reloadedQueue) debugText += " (reloaded)";
+        } else {
+            debugText += "\nQueue is empty";
+        }
+        debugArea.setText(debugText);
+
         setContentView(layout);
     }
 
     private void queryMediaFiles() {
-        long startTime = System.currentTimeMillis();
-        String[] projection = { MediaStore.Audio.Media.TITLE, MediaStore.Audio.Media.ARTIST, MediaStore.Audio.Media.DURATION, MediaStore.Audio.Media.DATA };
-        Cursor cursor = null;
-        try {
-            cursor = getContentResolver().query(
-                    MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                    projection,
-                    null,
-                    null,
-                    MediaStore.Audio.Media.DATE_ADDED + " DESC"
-            );
-            if (cursor == null) {
-                Toast.makeText(this, "No files found", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            int count = cursor.getCount();
-            if (count == 0) {
-                Toast.makeText(this, "No files found", Toast.LENGTH_SHORT).show();
-                cursor.close();
-                return;
-            }
-            ArrayList<String> fileList = new ArrayList<>();
-            int titleIndex = cursor.getColumnIndex(MediaStore.Audio.Media.TITLE);
-            int artistIndex = cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST);
-            int durationIndex = cursor.getColumnIndex(MediaStore.Audio.Media.DURATION);
-            int dataIndex = cursor.getColumnIndex(MediaStore.Audio.Media.DATA);
-            int shown = 0;
-            while (cursor.moveToNext() && shown < 20) {
-                String title = cursor.getString(titleIndex);
-                String artist = cursor.getString(artistIndex);
-                long duration = cursor.getLong(durationIndex);
-                String data = cursor.getString(dataIndex);
-                String item = artist + "|" + title + "|" + duration + "|" + data;
-                fileList.add(item);
-                shown++;
-            }
-            cursor.close();
-            long endTime = System.currentTimeMillis();
-            long elapsedTime = endTime - startTime;
-            Intent intent = new Intent(this, MediaListActivity.class);
-            intent.putStringArrayListExtra("fileList", fileList);
-            intent.putExtra("elapsedTime", elapsedTime);
-            startActivity(intent);
-        } catch (SecurityException e) {
-            Toast.makeText(this, "No permission", Toast.LENGTH_SHORT).show();
-        } finally {
-            if (cursor != null) cursor.close();
-        }
+        ArrayList<String> fileList = dbHelper.getQueueItems();
+        Intent intent = new Intent(this, MediaListActivity.class);
+        intent.putStringArrayListExtra("fileList", fileList);
+        startActivity(intent);
     }
 
     @Override
