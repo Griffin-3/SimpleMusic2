@@ -1,7 +1,6 @@
 package com.griffin3.simplemusic;
 
 import android.content.Intent;
-import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -18,7 +17,6 @@ import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
 public class MediaListActivity extends AppCompatActivity {
-    private MediaPlayer mediaPlayer;
     private ArrayList<String> fileList;
     private int currentPosition = -1;
     private DatabaseHelper dbHelper;
@@ -32,14 +30,6 @@ public class MediaListActivity extends AppCompatActivity {
         fileList = dbHelper.getQueueItems();
         currentPosition = dbHelper.getQueuePosition();
 
-        mediaPlayer = new MediaPlayer();
-        mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-            @Override
-            public void onCompletion(MediaPlayer mp) {
-                playNextSong();
-            }
-        });
-
         getSupportActionBar().setDisplayShowCustomEnabled(true);
         getSupportActionBar().setCustomView(R.layout.action_bar_layout);
         getSupportActionBar().setDisplayShowTitleEnabled(false);
@@ -48,11 +38,6 @@ public class MediaListActivity extends AppCompatActivity {
         closeIcon.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (mediaPlayer.isPlaying()) {
-                    mediaPlayer.stop();
-                    mediaPlayer.reset();
-                }
-                dbHelper.setQueuePosition(currentPosition);
                 finish();
             }
         });
@@ -66,42 +51,9 @@ public class MediaListActivity extends AppCompatActivity {
         }
     }
 
-    private void playSong(int position) {
-        try {
-            String item = fileList.get(position);
-            String[] parts = item.split("\\|", -1);
-            String data = parts[3];
-            mediaPlayer.reset();
-            mediaPlayer.setDataSource(data);
-            mediaPlayer.prepare();
-            mediaPlayer.start();
-            currentPosition = position;
-            dbHelper.setQueuePosition(currentPosition);
-            adapter.notifyDataSetChanged();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void playNextSong() {
-        currentPosition++;
-        if (currentPosition < fileList.size()) {
-            playSong(currentPosition);
-        } else {
-            mediaPlayer.stop();
-            mediaPlayer.reset();
-            currentPosition = -1;
-            dbHelper.setQueuePosition(currentPosition);
-        }
-    }
-
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (mediaPlayer != null) {
-            mediaPlayer.release();
-            mediaPlayer = null;
-        }
     }
 
     private class CustomAdapter extends ArrayAdapter<String> {
@@ -149,7 +101,9 @@ public class MediaListActivity extends AppCompatActivity {
             convertView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    playSong(position);
+                    Intent intent = new Intent(MediaListActivity.this, PlayerActivity.class);
+                    intent.putExtra("position", position);
+                    startActivity(intent);
                 }
             });
 

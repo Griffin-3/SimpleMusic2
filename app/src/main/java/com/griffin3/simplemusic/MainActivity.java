@@ -80,8 +80,13 @@ public class MainActivity extends AppCompatActivity {
         ArrayList<String> queue = dbHelper.getQueueItems();
         if (!queue.isEmpty()) {
             int position = dbHelper.getQueuePosition();
-            String songInfo = dbHelper.getCurrentSongInfo(position);
-            debugText += "\nFiles in queue: " + queue.size() + "\nQueue position: " + position + "\nCurrent song: " + (songInfo != null ? songInfo : "N/A");
+            debugText += "\nFiles in queue: " + queue.size() + "\nQueue position: " + position;
+            if (position >= 0 && position < queue.size()) {
+                SongInfo songInfo = SongInfo.fromQueueString(queue.get(position));
+                if (songInfo != null) {
+                    debugText += "\nTitle: " + songInfo.getTitle() + "\nArtist: " + songInfo.getArtist();
+                }
+            }
             if (reloadedQueue) debugText += " (reloaded)";
         } else {
             debugText += "\nQueue is empty";

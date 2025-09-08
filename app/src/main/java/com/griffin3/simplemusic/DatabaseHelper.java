@@ -6,6 +6,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.provider.MediaStore;
+import org.json.JSONObject;
 import java.util.ArrayList;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
@@ -124,16 +125,16 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
         if (cursor != null) {
             while (cursor.moveToNext()) {
-                String artist = cursor.getString(0);
-                String title = cursor.getString(1);
+                String artist = cursor.getString(0).trim();
+                String title = cursor.getString(1).trim();
                 long duration = cursor.getLong(2);
                 String data = cursor.getString(3);
 
                 if (artist.equals("<unknown>") && title.contains(" - ")) {
                     String[] parts = title.split(" - ", 2);
                     if (parts.length == 2) {
-                        artist = parts[0];
-                        title = parts[1];
+                        artist = parts[0].trim();
+                        title = parts[1].trim();
                     }
                 }
 
@@ -243,14 +244,24 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     public String getCurrentSongInfo(int position) {
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT m." + COLUMN_TITLE + ", m." + COLUMN_ARTIST +
+        Cursor cursor = db.rawQuery("SELECT m." + COLUMN_MEDIA_ID + ", m." + COLUMN_ARTIST + ", m." + COLUMN_TITLE + ", m." + COLUMN_DURATION + ", m." + COLUMN_DATA + ", m." + COLUMN_VOLUME + ", m." + COLUMN_LIKES +
                 " FROM " + TABLE_QUEUE + " q INNER JOIN " + TABLE_MEDIA + " m ON q." + COLUMN_MEDIA_ID_FK + " = m." + COLUMN_MEDIA_ID +
                 " LIMIT 1 OFFSET " + position, null);
         String info = null;
         if (cursor.moveToFirst()) {
-            String title = cursor.getString(0);
-            String artist = cursor.getString(1);
-            info = title + " - " + artist;
+            try {
+                JSONObject json = new JSONObject();
+                json.put("id", cursor.getLong(0));
+                json.put("artist", cursor.getString(1));
+                json.put("title", cursor.getString(2));
+                json.put("duration", cursor.getLong(3));
+                json.put("data", cursor.getString(4));
+                json.put("volume", cursor.getInt(5));
+                json.put("likes", cursor.getInt(6));
+                info = json.toString();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
         cursor.close();
         db.close();

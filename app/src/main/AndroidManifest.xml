@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <application
         android:allowBackup="true"
@@ -20,6 +21,8 @@
             </intent-filter>
         </activity>
         <activity android:name=".MediaListActivity" android:exported="true" />
+        <activity android:name=".PlayerActivity" android:exported="true" android:configChanges="orientation|screenSize" />
+        <activity android:name=".VisualActivity" android:exported="true" android:configChanges="orientation|screenSize" />
     </application>
 
 </manifest>
