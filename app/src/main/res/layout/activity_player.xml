@@ -32,14 +32,12 @@
 
     </LinearLayout>
 
-    <!-- Section 2: Visualization button -->
-    <Button
-        android:id="@+id/visualization_button"
+    <!-- Section 2: Visualization View -->
+    <FrameLayout
+        android:id="@+id/visualization_container"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:text="VISUALIZATION"
-        android:gravity="center" />
+        android:layout_weight="1.5" />
 
     <!-- Section 3: Controls and progress -->
     <LinearLayout
@@ -57,18 +55,18 @@
             android:gravity="center">
 
             <ImageButton
-                android:id="@+id/back_10_button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:src="@android:drawable/ic_media_rew"
-                android:contentDescription="Back 10 seconds" />
-
-            <ImageButton
                 android:id="@+id/prev_button"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:src="@android:drawable/ic_media_previous"
                 android:contentDescription="Previous song" />
+
+            <ImageButton
+                android:id="@+id/back_10_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@android:drawable/ic_media_rew"
+                android:contentDescription="Back 10 seconds" />
 
             <ImageButton
                 android:id="@+id/play_pause_button"
@@ -78,18 +76,18 @@
                 android:contentDescription="Play/Pause" />
 
             <ImageButton
-                android:id="@+id/next_button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:src="@android:drawable/ic_media_next"
-                android:contentDescription="Next song" />
-
-            <ImageButton
                 android:id="@+id/forward_10_button"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:src="@android:drawable/ic_media_ff"
                 android:contentDescription="Forward 10 seconds" />
+
+            <ImageButton
+                android:id="@+id/next_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@android:drawable/ic_media_next"
+                android:contentDescription="Next song" />
 
         </LinearLayout>
 

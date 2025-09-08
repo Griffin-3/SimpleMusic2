@@ -85,6 +85,11 @@ public class MainActivity extends AppCompatActivity {
                 SongInfo songInfo = SongInfo.fromQueueString(queue.get(position));
                 if (songInfo != null) {
                     debugText += "\nTitle: " + songInfo.getTitle() + "\nArtist: " + songInfo.getArtist();
+                    // Navigate directly to PlayerActivity if queue is loaded and position is valid
+                    Intent intent = new Intent(this, PlayerActivity.class);
+                    intent.putExtra("position", position);
+                    startActivity(intent);
+                    finish(); // Close MainActivity so back from PlayerActivity goes to queue page
                 }
             }
             if (reloadedQueue) debugText += " (reloaded)";

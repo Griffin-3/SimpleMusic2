@@ -9,7 +9,10 @@ import android.view.View;
 import android.widget.ImageButton;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.FrameLayout;
+import android.view.ViewGroup;
 import android.widget.Button;
+import com.griffin3.simplemusic.VisualActivity.VisualizerView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import android.util.Log;
@@ -28,7 +31,9 @@ public class PlayerActivity extends AppCompatActivity {
     private ImageButton playPauseButton;
     private ImageButton nextButton;
     private ImageButton forward10Button;
+    private FrameLayout visualizationContainer;
     private Button visualizationButton;
+    private VisualizerView embeddedVisualizerView;
     private TextView positionText;
     private TextView artistText;
     private DatabaseHelper dbHelper;
@@ -69,16 +74,28 @@ public class PlayerActivity extends AppCompatActivity {
         playPauseButton = findViewById(R.id.play_pause_button);
         nextButton = findViewById(R.id.next_button);
         forward10Button = findViewById(R.id.forward_10_button);
-        visualizationButton = findViewById(R.id.visualization_button);
+        visualizationContainer = findViewById(R.id.visualization_container);
 
-        titleText.setOnClickListener(v -> {
-            Log.d("DEBUG: PlayerActivity", "Title clicked, audioSessionId: " + audioSessionId + ", isPlaying: " + player.isPlaying());
-            // Removed navigation to VisualActivity
-        });
-
+        // Create visualization button programmatically
+        visualizationButton = new Button(this);
+        visualizationButton.setText("VISUALIZATION");
+        visualizationButton.setGravity(android.view.Gravity.CENTER);
         visualizationButton.setOnClickListener(v -> {
-            Toast.makeText(this, "Visualize!", Toast.LENGTH_SHORT).show();
+            Log.d("DEBUG: PlayerActivity", "Visualization button clicked, audioSessionId: " + audioSessionId + ", isPlaying: " + player.isPlaying());
+            if (audioSessionId != 0 && player.isPlaying()) {
+                Intent intent = new Intent(this, VisualActivity.class);
+                intent.putExtra("audioSessionId", audioSessionId);
+                startActivity(intent);
+            } else {
+                Toast.makeText(this, "Audio not playing", Toast.LENGTH_SHORT).show();
+            }
         });
+
+        // Create embedded visualizer
+        embeddedVisualizerView = new VisualizerView(this);
+
+        // Start with button visible
+        showVisualizationButton();
     }
 
     private void initializePlayer() {
@@ -97,6 +114,12 @@ public class PlayerActivity extends AppCompatActivity {
                 updatePlayPauseButton();
                 if (isPlaying) {
                     audioSessionId = player.getAudioSessionId();
+                    // Show embedded visualizer when music starts playing
+                    showEmbeddedVisualizer();
+                } else {
+                    // Show button and stop music when paused
+                    showVisualizationButton();
+                    player.stop();
                 }
             }
         });
@@ -104,10 +127,13 @@ public class PlayerActivity extends AppCompatActivity {
     }
 
     private void setupControls() {
-        back10Button.setOnClickListener(v -> {
-            long newPosition = player.getCurrentPosition() - 10000;
-            player.seekTo(Math.max(0, newPosition));
-        });
+        // Disable and gray out fast reverse button
+        back10Button.setEnabled(false);
+        back10Button.setAlpha(0.5f);
+        // back10Button.setOnClickListener(v -> {
+        //     long newPosition = player.getCurrentPosition() - 10000;
+        //     player.seekTo(Math.max(0, newPosition));
+        // });
 
         prevButton.setOnClickListener(v -> {
             if (currentPosition > 0) {
@@ -126,10 +152,13 @@ public class PlayerActivity extends AppCompatActivity {
 
         nextButton.setOnClickListener(v -> playNext(false));
 
-        forward10Button.setOnClickListener(v -> {
-            long newPosition = player.getCurrentPosition() + 10000;
-            player.seekTo(Math.min(player.getDuration(), newPosition));
-        });
+        // Disable and gray out fast forward button
+        forward10Button.setEnabled(false);
+        forward10Button.setAlpha(0.5f);
+        // forward10Button.setOnClickListener(v -> {
+        //     long newPosition = player.getCurrentPosition() + 10000;
+        //     player.seekTo(Math.min(player.getDuration(), newPosition));
+        // });
 
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -232,6 +261,17 @@ public class PlayerActivity extends AppCompatActivity {
                 TimeUnit.MILLISECONDS.toSeconds(millis) % 60);
     }
 
+    private void showVisualizationButton() {
+        visualizationContainer.removeAllViews();
+        visualizationContainer.addView(visualizationButton);
+    }
+
+    private void showEmbeddedVisualizer() {
+        visualizationContainer.removeAllViews();
+        embeddedVisualizerView.updateAudioSession(audioSessionId);
+        visualizationContainer.addView(embeddedVisualizerView);
+    }
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
@@ -248,5 +288,13 @@ public class PlayerActivity extends AppCompatActivity {
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
         // Views are automatically updated due to resource-qualified layouts
+    }
+
+    @Override
+    public void onBackPressed() {
+        // Navigate to queue page (MediaListActivity) instead of finishing
+        Intent intent = new Intent(this, MediaListActivity.class);
+        startActivity(intent);
+        finish();
     }
 }
